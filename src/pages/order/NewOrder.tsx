@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
-import { Card, Select, Breadcrumb, Table } from "antd";
+import { Card, Select, Breadcrumb, Table, InputNumber, Button } from "antd";
 import { Link } from "react-router-dom";
 import useProductsStore from "../../store/product.store";
 import OrderItem from "./OrderItem";
+import { MinusCircleOutlined, PlusCircleOutlined } from "@ant-design/icons";
 
+// type variant = {
+// _id: string;
+// name: string;
+//     price: number;
+//     value: string;
+//     label: string;
+// };
 const NewOrder = () => {
     const { products, fetchProducts } = useProductsStore();
 
@@ -12,31 +20,74 @@ const NewOrder = () => {
     }, []);
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
     const [selectedNewItems, setSelectedNewItems] = useState<object[]>([]);
+    const [newTableData, setNewTableData] = useState<object[]>([]);
+    const [count, setCount] = useState(1);
 
-    type optionsType = {
-        value: string;
-        label: string;
+    function changeWeight(e) {
+        console.log(e);
+    }
+    const onNewProductSelect = (options: object) => {
+        let matched = false;
+        const newARR = selectedNewItems.length
+            ? selectedNewItems.map((e) => {
+                  // console.log(e);
+                  //@ts-ignore
+                  if (e._id == options._id) {
+                      matched = true;
+                      return options;
+                  }
+                  return e;
+              })
+            : [];
+
+        if (!matched) {
+            newARR.push(options);
+        }
+
+        setSelectedNewItems(newARR);
     };
 
-    const onNewProductSelect = (options: optionsType[]) => {
-        console.log({ options });
-
-        const margeArr = [...selectedNewItems, ...options];
-
-        const emptyArr: object[] = [];
-        const filterSelectedItem = margeArr.filter((item: any) => {
-            const newArr = emptyArr.includes(item.value);
-            if (!newArr) {
-                emptyArr.push(item.value);
-                return true;
-            } else {
-                return false;
-            }
+    useEffect(() => {
+        let tableDataMapObj: object[] = [];
+        selectedNewItems?.map((e: any) => {
+            // @ts-ignore
+            Object.values(e?.variant)?.map((item: any) => {
+                const data = {
+                    ...e,
+                    variant: undefined,
+                    variantId: item.value,
+                    variantUnitePrice: item.price,
+                    variantTitle: item.label.join(" "),
+                    variantQuantity: item.qt,
+                    totalPrice: Number(item.price) * Number(item.qt),
+                };
+                tableDataMapObj.push(data);
+            });
         });
 
-        setSelectedNewItems(filterSelectedItem);
-    };
-    console.log(selectedNewItems);
+        //@ts-ignore
+        setNewTableData(tableDataMapObj);
+    }, [selectedNewItems]);
+
+    // useEffect(() => {
+    //     const tableDataMapObj = selectedNewItems?.map((e) => {
+    //         return {
+    //             ...e,
+    //             // @ts-ignore
+    //             price: Object.values(e.variant).map((item) => item.price),
+    //             // @ts-ignore
+    //             value: Object.values(e.variant).map((item) => item.value),
+    //             // @ts-ignore
+    //             label: Object.values(e.variant).map((item) => item.label),
+    //         };
+    //     });
+    //     setNewTableData(tableDataMapObj);
+    // }, [selectedNewItems]);
+    // const value = newTableData.map(
+    //     // @ts-ignore
+    //     (item) => Number(item.price) * Number(item.qt)
+    // );
+    // console.log(value);
 
     return (
         <section>
@@ -85,28 +136,54 @@ const NewOrder = () => {
             <Table
                 scroll={{ x: 600 }}
                 // loading={order.loading}
-                // dataSource={products.data}
-                rowKey={(item) => `order_${item._id}`}
+                dataSource={newTableData}
+                rowKey={(_item, index) => `row-key-${index}`}
                 columns={[
                     {
-                        title: "PRODUCT",
-                        render: (_val, rec) => rec.product.name,
+                        title: "Name",
+                        dataIndex: "name",
                     },
                     {
                         title: "PRICE",
-                        render: (_val, rec) => rec.variant.price,
+
+                        dataIndex: "variantUnitePrice",
                     },
                     {
                         title: "QUANTITY",
-                        render: (_val, rec) => rec.quantity,
+                        render: (_val, rec) => {
+                            return (
+                                <>
+                                    <Button
+                                        onClick={() => setCount(count - 1)}
+                                        icon={<MinusCircleOutlined />}
+                                    />
+
+                                    <InputNumber
+                                        min={1}
+                                        max={10}
+                                        value={count}
+                                        onChange={(e) =>
+                                            // @ts-ignore
+                                            console.log(e)
+                                        }
+                                        style={{ width: 50 }}
+                                    />
+                                    <Button
+                                        onClick={() => setCount(count + 1)}
+                                        icon={<PlusCircleOutlined />}
+                                    />
+                                </>
+                            );
+                        },
                     },
                     {
                         title: "VARIANTS",
-                        render: (_val, rec) => rec,
+                        dataIndex: "variantTitle",
                     },
                     {
                         title: "TOTAL PRICE",
-                        render: (_val, rec) => rec.unit_price * rec.quantity,
+
+                        dataIndex: "totalPrice",
                     },
                 ]}
             />
